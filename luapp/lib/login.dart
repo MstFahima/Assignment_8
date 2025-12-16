@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:luapp/profile.dart';
 import 'package:luapp/register.dart';
-import 'package:quickalert/quickalert.dart';
 
 class Login extends StatefulWidget {
   const Login({super.key});
@@ -11,50 +9,53 @@ class Login extends StatefulWidget {
 }
 
 class _LoginState extends State<Login> {
+  final _formKey = GlobalKey<FormState>();
+
   final TextEditingController usernameController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
 
+  @override
+  void dispose() {
+    usernameController.dispose();
+    passwordController.dispose();
+    super.dispose();
+  }
+
+  bool _isEmailValid(String value) {
+    return RegExp(
+      r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+    ).hasMatch(value);
+  }
+
+  void showSuccessDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text("Login Successful"),
+        content: Text(
+          "Welcome back, ${usernameController.text}",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("OK"),
+          ),
+        ],
+      ),
+    );
+  }
+
   void signIn(BuildContext context) {
-    final username = usernameController.text.trim();
-    final password = passwordController.text.trim();
-
-    if (username.isEmpty || password.isEmpty) {
-      QuickAlert.show(
-        context: context,
-        type: QuickAlertType.error,
-        title: "Error",
-        text: "Please enter both username/email and password.",
-      );
-      return;
-    }
-
-    if (username == "1111" && password == "1111") {
-      QuickAlert.show(
-        context: context,
-        type: QuickAlertType.success,
-        title: "Login Successful!",
-        text: "Welcome back, $username!",
-        onConfirmBtnTap: () {
-          Navigator.pop(context);
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (_) => Profile(username: username)),
-          );
-        },
-      );
-    } else {
-      QuickAlert.show(
-        context: context,
-        type: QuickAlertType.error,
-        title: "Login Failed",
-        text: "Invalid username or password",
-      );
+    if (_formKey.currentState!.validate()) {
+      showSuccessDialog(context);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF2F5FA),
       body: Center(
         child: SingleChildScrollView(
           child: Container(
@@ -63,7 +64,7 @@ class _LoginState extends State<Login> {
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(20),
-              boxShadow: [
+              boxShadow: const [
                 BoxShadow(
                   color: Colors.black12,
                   blurRadius: 15,
@@ -71,85 +72,112 @@ class _LoginState extends State<Login> {
                 ),
               ],
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const CircleAvatar(
-                  radius: 40,
-                  backgroundColor: Color(0xFFD6E9FF),
-                  child: Icon(Icons.person, size: 40, color: Colors.blue),
-                ),
-                const SizedBox(height: 20),
-
-                const Text(
-                  "Login",
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 20),
-
-                TextField(
-                  controller: usernameController,
-                  decoration: const InputDecoration(
-                    labelText: "Username or email address",
-                    hintText: "Enter username or email",
-                    border: OutlineInputBorder(),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const CircleAvatar(
+                    radius: 40,
+                    backgroundColor: Color(0xFFD6E9FF),
+                    child: Icon(Icons.person, size: 40, color: Colors.blue),
                   ),
-                ),
-                const SizedBox(height: 15),
+                  const SizedBox(height: 20),
 
-                TextField(
-                  controller: passwordController,
-                  obscureText: true,
-                  decoration: const InputDecoration(
-                    labelText: "Password",
-                    hintText: "Enter password",
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 20),
-
-                SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: ElevatedButton(
-                    onPressed: () => signIn(context),
-                    child: const Text("Sign in"),
-                  ),
-                ),
-                const SizedBox(height: 20),
-
-                const Row(
-                  children: [
-                    Expanded(child: Divider()),
-                    Text("  or  "),
-                    Expanded(child: Divider()),
-                  ],
-                ),
-                const SizedBox(height: 20),
-
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Text("New?"),
-                    TextButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const RegisterPage(),
-                          ),
-                        );
-                      },
-                      child: const Text("Register"),
+                  const Text(
+                    "Login",
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
                     ),
-                  ],
-                ),
-              ],
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Username / Email
+                  TextFormField(
+                    controller: usernameController,
+                    decoration: const InputDecoration(
+                      labelText: "Username or Email",
+                      hintText: "Enter username or email",
+                      prefixIcon: Icon(Icons.person_outline),
+                      border: OutlineInputBorder(),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return "Username or email is required";
+                      }
+                      if (value.contains('@') && !_isEmailValid(value)) {
+                        return "Invalid email format";
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 15),
+
+                  // Password
+                  TextFormField(
+                    controller: passwordController,
+                    obscureText: true,
+                    decoration: const InputDecoration(
+                      labelText: "Password",
+                      hintText: "Enter password",
+                      prefixIcon: Icon(Icons.lock_outline),
+                      border: OutlineInputBorder(),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return "Password is required";
+                      }
+                      if (value.length < 6) {
+                        return "Minimum 6 characters required";
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 20),
+
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton(
+                      onPressed: () => signIn(context),
+                      child: const Text("Sign in"),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  const Row(
+                    children: [
+                      Expanded(child: Divider()),
+                      Text("  or  "),
+                      Expanded(child: Divider()),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text("New?"),
+                      TextButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const RegisterPage(),
+                            ),
+                          );
+                        },
+                        child: const Text("Register"),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ),
       ),
-      backgroundColor: const Color(0xFFF2F5FA),
     );
   }
 }
